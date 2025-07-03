@@ -1,0 +1,165 @@
+/* Definir los colores principales */
+*{
+    font-size:13px;
+}
+
+QWidget {
+    background-color: #e6e6e6;  /* Fondo general */
+    color: #373737;           /* Color del texto */
+}
+
+/* General: Bordes */
+QWidget, QComboBox, QLineEdit, QTextEdit, QPushButton, QGroupBox, QMenuBar, QToolBar {
+    border: 1px solid #555555;  /* Borde gris medio */
+    border-radius: 4px;         /* Bordes redondeados */
+}
+
+/* Encabezados y etiquetas */
+QLabel {
+    color: #373737;             /* Texto en gris oscuro */
+    font-weight: bold;
+}
+
+/* Campos de texto */
+QLineEdit, QTextEdit, QComboBox {
+    background-color: #ffffff;  /* Fondo blanco */
+    color: #373737;             /* Texto gris oscuro */
+    padding: 5px;
+    margin-top:8px;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border: 2px solid #66fa93;  /* Borde gris claro cuando está enfocado */
+}
+
+/* Botones */
+QPushButton {
+    background-color: #818181;  /* Fondo gris claro */
+    color: #ffffff;             /* Texto blanco */
+    padding: 10px;
+    border: none;
+}
+
+QPushButton:hover {
+    background-color: #555555;  /* Fondo gris medio cuando pasa el ratón */
+}
+
+QPushButton:pressed {
+    background-color: #373737;  /* Fondo gris oscuro cuando está presionado */
+}
+
+/* Grupo de elementos (QGroupBox) */
+QGroupBox {
+    background-color: #ffffff;  /* Fondo blanco para los grupos */
+    border: 1px solid #818181;  /* Borde gris claro */
+    margin-top: 10px;
+    padding:1px;
+    font-weight:bold;
+}
+
+QGroupBox::title {
+    background-color: #ffffff;  /* Fondo blanco para el título */
+    color: #373737;             /* Color del texto */
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 4px;
+    border-radius:10px;
+}
+
+/* Barra de menús */
+QMenuBar {
+    background-color: #555555;  /* Fondo gris medio */
+    color: #ffffff;             /* Texto blanco */
+}
+
+QMenuBar::item {
+    background-color: #555555;
+    padding: 5px 10px;
+}
+
+QMenuBar::item:selected {
+    background-color: #818181;  /* Fondo gris claro cuando está seleccionado */
+}
+
+/* Barra de herramientas */
+QToolBar {
+    background-color: #818181;  /* Fondo gris medio */
+    border: 1px solid #ffffff;  /* Borde gris claro */
+    padding: 5px;
+}
+
+QToolBar QToolButton {
+    background-color: #818181;  /* Fondo gris claro */
+    color: #ffffff;             /* Texto blanco */
+    padding: 8px;
+    border:2px solid #ffffff;
+}
+
+QToolBar QToolButton:hover {
+    background-color: #555555;  /* Fondo gris medio cuando pasa el ratón */
+    margin:3px;
+    border:2px solid #66fa93;
+}
+
+/* Lista de elementos (QListWidget) */
+QListWidget {
+    background-color: #ffffff;  /* Fondo blanco */
+    color: #373737;             /* Texto gris oscuro */
+    border: 1px solid #ffffff;  /* Borde gris medio */
+}
+
+/* Diálogos (QDialog) */
+QDialog {
+    background-color: #ffffff;  /* Fondo blanco */
+}
+
+/* Cajas de combinación (QComboBox) */
+QComboBox {
+    background-color: #ffffff;  /* Fondo blanco */
+    border: 1px solid #818181;  /* Borde gris claro */
+}
+
+/* Campo de selección (QSpinBox) */
+QSpinBox {
+    background-color: #ffffff;  /* Fondo blanco */
+    border: 1px solid #818181;  /* Borde gris claro */
+}
+
+/* Etiquetas de estado o mensajes */
+QLabel#status {
+    font-size: 14px;
+    color: #818181;             /* Color gris claro */
+}
+
+/* Controles en formularios (QFormLayout) */
+QFormLayout {
+    spacing: 0px;
+    margin-top: 15px;
+}
+
+/* Separadores */
+QFrame {
+    border: 1px solid #555555;  /* Borde gris medio */
+    margin: 10px 0;
+}
+
+/* Controles en barra de menú */
+QMenu {
+    background-color: #555555;  /* Fondo gris medio */
+    color: #ffffff;             /* Texto blanco */
+    border: 1px solid #818181;  /* Borde gris claro */
+}
+
+QMenu::item:selected {
+    background-color: #818181;  /* Fondo gris claro cuando está seleccionado */
+}
+
+/* Selección del menú */
+QMenuBar::item:selected {
+    background-color: #818181;
+}
+
+/* Eliminar borde en elementos sin importancia (separadores, iconos, etc.) */
+QToolBar QToolButton:only-icon {
+    border: none;
+}
