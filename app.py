@@ -131,11 +131,14 @@ def get_user_info():
         current_user = get_current_user()
         # load_data_user debe devolver los datos, modifícala para retornar en vez de setText
         user_data = load_data_user(current_user)
+        print("Datos del usuario actual:", user_data)
         if user_data:
             return jsonify({
                 "numeroEmpleado": user_data["Id"],
                 "nombreEmpleadoCompleto": user_data["Original_Name"],
-                "puesto": user_data["Job Position"]
+                "puesto": user_data["Job Position"],
+                "nombreEmpleado": user_data["First_Name"],
+                "apellidoEmpleado": user_data["First_Lastname"],
             })
         else:
             return jsonify({"ok": False, "error": "Usuario no encontrado"}), 404
