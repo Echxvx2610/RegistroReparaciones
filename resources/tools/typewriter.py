@@ -70,22 +70,40 @@ def get_current_user():
         return "UKNOWN_USER"
     
     
+import pandas as pd
+
 def load_data_user(current_username):
     users = pd.read_excel('resources/data/HeadCount_220125.xlsx', engine='openpyxl')
     users = users[['Id', 'Name', 'Job Position']]
+    
     users[['Formated_Name', 'Original_Name']] = users['Name'].apply(
         lambda x: pd.Series(formated_user_string(x))
     )
+    
     matched_user = users[users['Formated_Name'] == current_username.upper()]
+    
     if not matched_user.empty:
         row = matched_user.iloc[0]
+        
+        # Extraer el primer apellido y el primer nombre
+        try:
+            last_name_part, name_part = row['Original_Name'].split(',')
+            first_lastname = last_name_part.strip().split()[0]  # Primer apellido
+            first_name = name_part.strip().split()[0]           # Primer nombre
+        except Exception as e:
+            first_lastname = ""
+            first_name = ""
+            #print("DEBUG: Error parsing names:", e)
+
+        #print("DEBUG: load_data_user - Usuario encontrado:", row)
+        
         return {
             "Id": str(row['Id']),
             "Original_Name": row['Original_Name'],
-            "Job Position": row['Job Position']
+            "Job Position": row['Job Position'],
+            "First_Lastname": first_lastname,
+            "First_Name": first_name
         }
     else:
-        return None
-    
-    
+        return None    
 # print(load_data_user(get_current_user()))

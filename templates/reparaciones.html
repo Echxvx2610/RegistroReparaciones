@@ -145,6 +145,8 @@
                 ...prev,
                 numeroEmpleado: data.numeroEmpleado,
                 nombreEmpleadoCompleto: data.nombreEmpleadoCompleto,
+                nombreEmpleado: data.nombreEmpleado,
+                apellidoEmpleado: data.apellidoEmpleado,
                 puesto: data.puesto
               }));
 
@@ -432,8 +434,8 @@
                 <div className="user-row">
                   <UserIcon />
                   <span style={{ marginRight: "50px" }}>
-                    {formData.nombreEmpleadoCompleto} - {formData.puesto}
-                    {/* Nombre - Apellido y Puesto */}
+                    {/* {formData.nombreEmpleadoCompleto} - {formData.puesto} */}
+                    {formData.apellidoEmpleado} {formData.nombreEmpleado} - {formData.puesto}
                   </span>
                 </div>
                 <div className="user-row">
