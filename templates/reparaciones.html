@@ -122,7 +122,9 @@
         semana: "",
         fechaRegistro: new Date().toISOString().split("T")[0],
         numeroEmpleado: "",
+        nombreEmpleadoCompleto: "",
         nombreEmpleado: "",
+        apellidoEmpleado: "",
         puesto: "",
         turno: "",
         codigoFalla: "",
@@ -138,12 +140,14 @@
           .then(res => res.json())
           .then(data => {
             if (data.numeroEmpleado) {
+              //console.log("Datos del usuario:",typeof(data.nombreEmpleado))
               setFormData(prev => ({
                 ...prev,
                 numeroEmpleado: data.numeroEmpleado,
-                nombreEmpleado: data.nombreEmpleado,
+                nombreEmpleadoCompleto: data.nombreEmpleadoCompleto,
                 puesto: data.puesto
               }));
+
             }
           });
       }, []);
@@ -286,7 +290,7 @@
         setCurrentStep(3);
       };
 
-      const handleFailureCodeSelect = (code,description) => {
+      const handleFailureCodeSelect = (code, description) => {
         setFormData((prev) => ({
           ...prev,
           codigoFalla: code,
@@ -313,36 +317,64 @@
       };
 
       const handleSubmit = () => {
-        // mostrar los datos recaudados
         console.log("datos del formulario:", formData);
 
-        Toast.fire({
-            icon: "success",
-            title: "Registro guardado correctamente!",
-          });
+        fetch("http://127.0.0.1:5000/api/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.ok) {
+              console.log("Registro guardado correctamente");
+              Toast.fire({
+                icon: "success",
+                title: "Registro guardado correctamente!",
+              });
 
-        // Reset form
-        setFormData({
-          serialNumber: "",
-          item: "",
-          familia: "",
-          descripcion: "",
-          area: "",
-          centroCosto: "",
-          semana: formData.semana,
-          fechaRegistro: new Date().toISOString().split("T")[0],
-          numeroEmpleado: formData.numeroEmpleado,
-          nombreEmpleado: formData.nombreEmpleado,
-          puesto: formData.puesto,
-          turno: formData.turno,
-          codigoFalla: "",
-          descripcionDefecto: "",
-          refEsquematico: "",
-          itemPN: "",
-          secuencia: "",
-        });
-        setCurrentStep(1);
+              // Reset form
+              setFormData({
+                serialNumber: "",
+                item: "",
+                familia: "",
+                descripcion: "",
+                area: "",
+                centroCosto: "",
+                semana: formData.semana,
+                fechaRegistro: new Date().toISOString().split("T")[0],
+                numeroEmpleado: formData.numeroEmpleado,
+                nombreEmpleadoCompleto: formData.nombreEmpleadoCompleto,
+                nombreEmpleado: "",
+                apellidoEmpleado: "",
+                puesto: formData.puesto,
+                turno: formData.turno,
+                codigoFalla: "",
+                descripcionDefecto: "",
+                refEsquematico: "",
+                itemPN: "",
+                secuencia: "",
+              });
+              setCurrentStep(1);
+            } else {
+              console.error("Error al guardar el registro:", data.message);
+              Toast.fire({
+                icon: "error",
+                title: "Error al guardar el registro",
+              });
+            }
+          })
+          .catch(err => {
+            console.error("Error de red o servidor:", err);
+            Toast.fire({
+              icon: "error",
+              title: "Error de red o servidor",
+            });
+          });
       };
+
 
       const canProceedToNext = () => {
         if (currentStep === 4) {
@@ -388,8 +420,11 @@
         <div className="app-container">
           {/* Header */}
           <div className="header">
+            <div className="logo">
+              <img src="../static/img/LOGO_NAVICO_white.png" alt="Logo navico" />
+            </div>
             <div className="header-content">
-              <div>
+              <div className="title">
                 <h1>Registro de Reparaciones</h1>
                 <p>Ingenieria de Procesos PCBA</p>
               </div>
@@ -397,7 +432,8 @@
                 <div className="user-row">
                   <UserIcon />
                   <span style={{ marginRight: "50px" }}>
-                    {formData.nombreEmpleado} - {formData.puesto}
+                    {formData.nombreEmpleadoCompleto} - {formData.puesto}
+                    {/* Nombre - Apellido y Puesto */}
                   </span>
                 </div>
                 <div className="user-row">
@@ -479,8 +515,8 @@
                     <span>o</span>
                   </div>
                   <hr />
-                    <p>No cuentas con un S/N para escanear?</p>
-                    <button className="secondary-btn">Generar S/N</button>
+                  <p>No cuentas con un S/N para escanear?</p>
+                  <button className="secondary-btn">Generar S/N</button>
                 </div>
               </div>
 

@@ -45,7 +45,7 @@ def parse_serial_number(serial):
 @app.route("/api/serial_info", methods=["POST"])
 def scan_sn():
     data = request.get_json(force=True, silent=True)
-    print("Datos recibidos:", data)
+    print("Datos recibidos (scan_sn):", data)
     sn = data.get("serialNumber", "")
 
     # Usar la función para extraer el ensamble formateado
@@ -54,7 +54,7 @@ def scan_sn():
         return jsonify({"ok": False, "error": "Serial inválido"}), 400
 
     item_code = sn_info["ensamble_formateado"]
-    print("Item code extraído:", item_code)
+    #print("Item code extraído:", item_code)
 
     _, df_ensamble_filter, error = load_excel_data()
     if error:
@@ -121,8 +121,8 @@ def get_failure_codes():
 
 @app.route("/api/register", methods=["POST"])
 def register_repair():
-    payload = request.json
-    # persistor.save(payload)
+    data = request.get_json()
+    print("Datos recibidos para registro:", data)
     return jsonify({"ok": True, "message": "Registro guardado"})
 
 @app.route("/api/user-info", methods=["GET"])
@@ -134,7 +134,7 @@ def get_user_info():
         if user_data:
             return jsonify({
                 "numeroEmpleado": user_data["Id"],
-                "nombreEmpleado": user_data["Original_Name"],
+                "nombreEmpleadoCompleto": user_data["Original_Name"],
                 "puesto": user_data["Job Position"]
             })
         else:
