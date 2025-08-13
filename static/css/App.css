@@ -17,18 +17,19 @@
     padding: 24px;
     border-radius: 15px;
     margin-bottom: 24px;
-    /* box-shadow: -10px 5px 10px rgba(135, 146, 155, 0.548); */
+    box-shadow: -10px 5px 10px rgba(135, 146, 155, 0.548);
 }
-.logo{
-    margin: 0px;
+
+.logo {
+    margin-right: 10px;
     padding: 5px;
     width: 100px;
 }
 
 .header-content {
     display: flex;
-    justify-content: space-between;
-    align-items: left;
+    justify-content: space-around;
+    align-items: center;
 }
 
 .header h1 {
@@ -56,7 +57,7 @@
     width: 350px;
 }
 
-.user-row > span {
+.user-row>span {
     text-align: left;
 }
 
@@ -198,6 +199,7 @@
 
 .manual-input {
     display: flex;
+    flex-direction: row;
     gap: 8px;
     width: 100%;
     max-width: 400px;
@@ -209,6 +211,7 @@
     border-radius: 8px;
     font-size: 14px;
 }
+
 .search-input {
     flex: 1;
     padding: 5px;
@@ -329,8 +332,8 @@
 
 .area-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
 }
 
 .area-btn {
@@ -421,11 +424,13 @@
     .details-grid {
         grid-template-columns: 1fr;
     }
-    .header-content{
+
+    .header-content {
         flex-direction: column;
-        gap:20px;
+        gap: 20px;
     }
-    .user-info{
+
+    .user-info {
         margin-left: 20px;
     }
 }
@@ -508,12 +513,252 @@
 .sequence-btn:hover {
     border-color: #2563eb;
     background-color: #eff6ff;
+    color:black;
 }
+
 .sequence-btn::selection {
     background-color: #2563eb;
     color: white;
 }
-.sequence-btn:focus{
+
+.sequence-btn:focus {
     background-color: #1d4ed8;
     color: white;
+}
+
+.final-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 20px 30px;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.modal-content label {
+    font-weight: bold;
+}
+
+.modal-content input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.modal-content button {
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal-content button:first-of-type {
+    background-color: #6b7280;
+    color: white;
+}
+
+.modal-content button:first-of-type:hover {
+    background-color: #2563eb;
+    color: white;
+}
+
+.modal-content button:last-of-type {
+    background-color: #6b7280;
+    color: white;
+}
+
+.modal-content button:last-of-type:hover {
+    background-color: #2563eb;
+    color: white;
+}
+
+.checkbox-label {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #374151;
+}
+
+.checkbox-label input {
+    margin-right: 8px;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.warning-message{
+    background-color: #ecfdf5;
+    padding: 10px;
+}
+
+.footer {
+    text-align: left;
+    margin-top: 10px;
+}
+
+
+
+/* Estilos adicionales para el diseño compacto */
+.compact-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .compact-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.selected {
+    background-color: #2563eb;
+    color: white;
+}
+
+.hidden-timer {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #666;
+    z-index: 1000;
+    display: none;
+}
+
+/* Responsive para tablets */
+@media (max-width: 768px) {
+    .auto-data-compact {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .data-row.full-width {
+        grid-column: 1;
+    }
+
+    .area-grid-compact {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+
+    .area-btn-compact {
+        padding: 16px 12px;
+        min-height: 70px;
+    }
+
+    .area-name-compact {
+        font-size: 18px;
+    }
+
+    .area-code-compact {
+        font-size: 11px;
+    }
+}
+
+/* Responsive para móviles */
+@media (max-width: 480px) {
+    .success-info-compact {
+        padding: 10px 12px;
+    }
+
+    .auto-data-compact {
+        font-size: 12px;
+        gap: 4px;
+    }
+
+    .data-label {
+        min-width: 60px;
+    }
+
+    .area-grid-compact {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        max-width: 280px;
+    }
+
+    .area-btn-compact {
+        padding: 16px;
+        min-height: 60px;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .area-name-compact {
+        font-size: 20px;
+        margin-bottom: 0;
+    }
+
+    .area-code-compact {
+        font-size: 12px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+}
+
+/* Mejoras adicionales para el layout general */
+@media (max-width: 768px) {
+    .step-container {
+        margin-bottom: 16px;
+    }
+
+    .compact-layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+/* Optimización para pantallas muy pequeñas */
+@media (max-width: 360px) {
+    .success-info-compact {
+        padding: 8px 10px;
+    }
+
+    .auto-data-compact {
+        font-size: 11px;
+    }
+
+    .data-label {
+        min-width: 50px;
+    }
+
+    .area-btn-compact {
+        padding: 12px;
+        min-height: 50px;
+    }
+
+    .area-name-compact {
+        font-size: 18px;
+    }
 }

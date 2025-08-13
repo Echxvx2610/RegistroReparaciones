@@ -4,32 +4,31 @@
 <head>
   <meta charset="UTF-8" />
   <title>Registro de Reparaciones</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.5" />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.25" />
   <!-- React & ReactDOM via CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-
+  <!-- Lucide icons -->
+  <script type="module">
+    import lucide from 'https://cdn.jsdelivr.net/npm/lucide@0.525.0/+esm'
+  </script>
   <!-- Babel para usar JSX directamente en el navegador -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
   <!-- CSS -->
   <link rel="stylesheet" href="../static/css/App.css" />
 </head>
 
 <body>
   <div id="root"></div>
-
   <!-- Tu código React en JSX -->
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // crear modol para solicitar datos y crear un S/N
-    // pendiente de implementar
+    // Iconos SVG
     const ScanIcon = () => (
       <svg
-        width="64"
-        height="64"
+        width="48"
+        height="48"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -39,10 +38,11 @@
         <rect x="7" y="7" width="10" height="10" />
       </svg>
     );
+
     const UserIcon = () => (
       <svg
-        width="32"
-        height="32"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -55,15 +55,15 @@
 
     const ClockIcon = () => (
       <svg
-        width="24"
-        height="22"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
         strokeWidth="3"
       >
         <circle cx="12" cy="12" r="10" />
-        <polyline points="12,6 12,12 16,14" />
+        <polyline points="12,6 12,12 16,16" />
       </svg>
     );
 
@@ -95,12 +95,12 @@
       </svg>
     );
 
-    // funcion notificaciones con sweetAlert2:
+    // Configuración de SweetAlert2
     const Toast = Swal.mixin({
       toast: true,
       position: "top-end",
       showConfirmButton: false,
-      timer: 3000,
+      timer: 4000,
       timerProgressBar: true,
       didOpen: (toast) => {
         toast.onmouseenter = Swal.stopTimer;
@@ -108,10 +108,123 @@
       }
     });
 
+    // Funciones de validación
+    const validateSerialNumber = (sn) => {
+      if (!sn || sn.trim().length === 0) {
+        return { valid: false, message: "El número de serie no puede estar vacío" };
+      }
+
+      // Validar formato básico (ajusta según tus necesidades)
+      const serialPattern = /^[0-9A-Z\s-]+$/;
+      if (!serialPattern.test(sn.trim())) {
+        return { valid: false, message: "El formato del número de serie no es válido" };
+      }
+
+      if (sn.trim().length < 5) {
+        return { valid: false, message: "El número de serie debe tener al menos 5 caracteres" };
+      }
+
+      return { valid: true, message: "" };
+    };
+
+    const validateRefEsquematico = (ref) => {
+      if (!ref || ref.trim().length === 0) {
+        return { valid: false, message: "La referencia del esquemático es obligatoria" };
+      }
+
+      // Validar múltiples referencias separadas por comas
+      const refPattern = /^[A-Z]+[0-9]+$/i;
+      const refs = ref.split(',').map(r => r.trim()).filter(r => r !== '');
+
+      const invalidRefs = refs.filter(r => !refPattern.test(r));
+      if (invalidRefs.length > 0) {
+        return {
+          valid: false,
+          message: `Formato inválido en: ${invalidRefs.join(', ')}. Ejemplo: R123, C456, U789`
+        };
+      }
+
+      return { valid: true, message: "" };
+    };
+
+
+    const validateItemPN = (itemPN) => {
+      if (!itemPN || itemPN.trim().length === 0) {
+        return { valid: false, message: "El Item P/N es obligatorio" };
+      }
+
+      if (itemPN.trim().length < 3) {
+        return { valid: false, message: "El Item P/N debe tener al menos 3 caracteres" };
+      }
+
+      return { valid: true, message: "" };
+    };
+
+    const validateNumeroRegistros = (numero, isRequired) => {
+      if (!isRequired) return { valid: true, message: "" };
+
+      if (!numero || numero.toString().trim() === "") {
+        return { valid: false, message: "Debe especificar el número de registros" };
+      }
+
+      const num = parseInt(numero, 10);
+      if (isNaN(num)) {
+        return { valid: false, message: "Debe ser un número válido" };
+      }
+
+      if (num < 1) {
+        return { valid: false, message: "El número mínimo de registros es 1" };
+      }
+
+      if (num > 100) {
+        return { valid: false, message: "El número máximo de registros es 100" };
+      }
+
+      return { valid: true, message: "" };
+    };
+
+    // Validación para el modal de generación de S/N
+    const validateSerialFormData = (data) => {
+      const errors = {};
+
+      if (!data.identificador.trim()) {
+        errors.identificador = "El identificador es requerido";
+      } else if (!/^[0-9A-Z]+$/i.test(data.identificador)) {
+        errors.identificador = "Solo se permiten números y letras";
+      }
+
+      if (!data.fecha.trim()) {
+        errors.fecha = "La fecha es requerida";
+      } else if (!/^\d{1,2}\/\d{1,2}$/.test(data.fecha)) {
+        errors.fecha = "Formato inválido. Use AA/M (ej: 25/2)";
+      }
+
+      if (!data.ensamble.trim()) {
+        errors.ensamble = "El ensamble es requerido";
+      } else if (data.ensamble.length < 5) {
+        errors.ensamble = "El ensamble debe tener al menos 5 caracteres";
+      }
+
+      if (!data.job.trim()) {
+        errors.job = "El job es requerido";
+      } else if (data.job.length < 3) {
+        errors.job = "El job debe tener al menos 3 caracteres";
+      }
+
+      return errors;
+    };
+
     const RepairRegistrationApp = () => {
       const [currentStep, setCurrentStep] = useState(1);
+      const [showModal, setShowModal] = useState(false);
+      const [fieldErrors, setFieldErrors] = useState({});
 
-      //consultar datos del backend para llenar datos de formData
+      // Estados para el cronómetro oculto
+      const [timerStartTime, setTimerStartTime] = useState(null);
+      const [timerElapsed, setTimerElapsed] = useState(0);
+      const [timerActive, setTimerActive] = useState(false);
+      const timerIntervalRef = useRef(null);
+
       const [formData, setFormData] = useState({
         serialNumber: "",
         item: "",
@@ -133,14 +246,88 @@
         refEsquematico: "",
         itemPN: "",
         secuencia: "",
+        masDeUnRegistro: false,
+        numeroRegistros: "",
+        tiempoReparacion: 0,
       });
 
+      // Funciones del cronómetro
+      const startTimer = () => {
+        const startTime = Date.now();
+        setTimerStartTime(startTime);
+        setTimerActive(true);
+        setTimerElapsed(0);
+
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+        }
+
+        timerIntervalRef.current = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          setTimerElapsed(elapsed);
+        }, 1000);
+      };
+
+      const stopTimer = () => {
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+        if (timerStartTime) {
+          const endTime = Date.now();
+          const totalTime = endTime - timerStartTime;
+          const totalSeconds = Math.floor(totalTime / 1000);
+          setTimerActive(false);
+          setFormData(prev => ({
+            ...prev,
+            tiempoReparacion: totalSeconds
+          }));
+          return totalSeconds;
+        }
+        return 0;
+      };
+
+      const resetTimer = () => {
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+        setTimerStartTime(null);
+        setTimerElapsed(0);
+        setTimerActive(false);
+        setFormData(prev => ({
+          ...prev,
+          tiempoReparacion: 0
+        }));
+      };
+
+      const formatTime = (milliseconds) => {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      };
+
+      // Limpiar intervalo al desmontar el componente
+      useEffect(() => {
+        return () => {
+          if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+          }
+        };
+      }, []);
+
+      // Cargar información del usuario
       useEffect(() => {
         fetch("http://127.0.0.1:5000/api/user-info")
-          .then(res => res.json())
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`Error del servidor: ${res.status}`);
+            }
+            return res.json();
+          })
           .then(data => {
             if (data.numeroEmpleado) {
-              //console.log("Datos del usuario:",typeof(data.nombreEmpleado))
               setFormData(prev => ({
                 ...prev,
                 numeroEmpleado: data.numeroEmpleado,
@@ -149,8 +336,19 @@
                 apellidoEmpleado: data.apellidoEmpleado,
                 puesto: data.puesto
               }));
-
+            } else {
+              Toast.fire({
+                icon: "warning",
+                title: "No se pudo cargar la información del usuario"
+              });
             }
+          })
+          .catch(error => {
+            console.error("Error al cargar información del usuario:", error);
+            Toast.fire({
+              icon: "error",
+              title: "Error de conexión al cargar datos del usuario"
+            });
           });
       }, []);
 
@@ -163,10 +361,7 @@
         "Pad dañado",
       ]);
 
-      // Para almacenar los S/N escaneados
       const [scannedSerials, setScannedSerials] = useState([]);
-
-
       const qrInputRef = useRef(null);
       const defectInputRef = useRef(null);
 
@@ -214,6 +409,7 @@
         THL: "8943",
         TNT: "8944",
       };
+
       // Calcular turno automáticamente
       useEffect(() => {
         const now = new Date();
@@ -239,19 +435,46 @@
         }));
       }, []);
 
+      // Función mejorada para escanear QR con validaciones
       const handleQRScan = async (serialNumber) => {
         try {
+          // Limpiar errores previos
+          setFieldErrors({});
+
+          // Validar formato del S/N
+          const validation = validateSerialNumber(serialNumber);
+          if (!validation.valid) {
+            Toast.fire({
+              icon: "error",
+              title: validation.message
+            });
+            return;
+          }
+
+          // Mostrar loading
+          // Toast.fire({
+          //   icon: "info",
+          //   title: "Consultando información...",
+          //   timer: 1500
+          // });
+
           console.log("Escaneando S/N:", serialNumber);
           const response = await fetch("http://127.0.0.1:5000/api/serial_info", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ serialNumber }),
+            body: JSON.stringify({ serialNumber: serialNumber.trim().toUpperCase() }),
           });
 
           if (!response.ok) {
-            throw new Error("No se pudo obtener la información del backend");
+            if (response.status === 404) {
+              throw new Error("Formato de S/N incorrecto");
+            } else if (response.status === 500) {
+              throw new Error("Error interno del servidor");
+            } else {
+              throw new Error(`Error del servidor: ${response.status}`);
+            }
           }
 
           const data = await response.json();
@@ -259,45 +482,100 @@
           if (data && data.item && data.familia && data.descripcion) {
             setFormData((prev) => ({
               ...prev,
-              serialNumber,
+              serialNumber: serialNumber.trim().toUpperCase(),
               ...data,
             }));
+
             console.log("serialNumber escaneado:", serialNumber);
             setScannedSerials((prev) => {
-              if (!prev.includes(serialNumber)) {
-                return [serialNumber, ...prev]; // Agregar el nuevo S/N al inicio
+              if (!prev.includes(serialNumber.toUpperCase())) {
+                return [serialNumber.toUpperCase(), ...prev.slice(0, 4)];
               }
               return prev;
             });
-            console.log("S/N escaneados:", scannedSerials[0]);
+
+            // Iniciar cronómetro
+            startTimer();
+
+            // Limpiar input
+            if (qrInputRef.current) {
+              qrInputRef.current.value = "";
+            }
+
+            // Toast.fire({
+            //   icon: "success",
+            //   title: "Información cargada correctamente"
+            // });
+
             setCurrentStep(2);
           } else {
-            alert("S/N no encontrado en la base de datos");
+            throw new Error("Datos incompletos recibidos del servidor");
           }
         } catch (error) {
-          //alert("Error al consultar el backend: " + error.message);
+          console.error("Error al consultar el backend:", error);
+
+          let errorMessage = "Error desconocido";
+          if (error.message.includes("Failed to fetch")) {
+            errorMessage = "Error de conexión. Verifique su conexión a internet";
+          } else if (error.message.includes("no encontrado")) {
+            errorMessage = "Ensamble no encontrado en la base de datos";
+          } else if (error.message.includes("formato")) {
+            errorMessage = "Formato de S/N incorrecto";
+          } else {
+            errorMessage = error.message;
+          }
+
           Toast.fire({
             icon: "error",
-            title: "Error al consultar el backend\n(Ingrese un SN adecuado)",
+            title: errorMessage,
+            timer: 5000
           });
         }
       };
 
       const handleAreaSelect = (area) => {
+        if (!area) {
+          Toast.fire({
+            icon: "error",
+            title: "Debe seleccionar un área válida"
+          });
+          return;
+        }
+
         setFormData((prev) => ({
           ...prev,
           area,
           centroCosto: areaCostCenter[area],
         }));
+
+        // Toast.fire({
+        //   icon: "success",
+        //   title: `Área ${area} seleccionada`
+        // });
+
         setCurrentStep(3);
       };
 
       const handleFailureCodeSelect = (code, description) => {
+        if (!code || !description) {
+          Toast.fire({
+            icon: "error",
+            title: "Código de falla inválido"
+          });
+          return;
+        }
+
         setFormData((prev) => ({
           ...prev,
           codigoFalla: code,
           descripcionFalla: description,
         }));
+
+        // Toast.fire({
+        //   icon: "success",
+        //   title: `Código ${code} seleccionado`
+        // });
+
         setCurrentStep(4);
       };
 
@@ -316,82 +594,399 @@
           ...prev,
           secuencia: seq,
         }));
+
+        // Limpiar error de secuencia si existía
+        setFieldErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.secuencia;
+          return newErrors;
+        });
       };
 
-      const handleSubmit = () => {
-        console.log("datos del formulario:", formData);
+      // Validación en tiempo real para campos
+      const handleFieldChange = (fieldName, value) => {
+        setFormData(prev => ({
+          ...prev,
+          [fieldName]: value
+        }));
 
-        fetch("http://127.0.0.1:5000/api/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.ok) {
-              console.log("Registro guardado correctamente");
-              Toast.fire({
-                icon: "success",
-                title: "Registro guardado correctamente!",
-              });
+        // Validar en tiempo real y limpiar errores
+        let validation = { valid: true, message: "" };
 
-              // Reset form
-              setFormData({
-                serialNumber: "",
-                item: "",
-                familia: "",
-                descripcion: "",
-                area: "",
-                centroCosto: "",
-                semana: formData.semana,
-                fechaRegistro: new Date().toISOString().split("T")[0],
-                numeroEmpleado: formData.numeroEmpleado,
-                nombreEmpleadoCompleto: formData.nombreEmpleadoCompleto,
-                nombreEmpleado: "",
-                apellidoEmpleado: "",
-                puesto: formData.puesto,
-                turno: formData.turno,
-                codigoFalla: "",
-                descripcionDefecto: "",
-                refEsquematico: "",
-                itemPN: "",
-                secuencia: "",
-              });
-              setCurrentStep(1);
-            } else {
-              console.error("Error al guardar el registro:", data.message);
-              Toast.fire({
-                icon: "error",
-                title: "Error al guardar el registro",
-              });
-            }
-          })
-          .catch(err => {
-            console.error("Error de red o servidor:", err);
+        switch (fieldName) {
+          case 'refEsquematico':
+            validation = validateRefEsquematico(value);
+            break;
+          case 'itemPN':
+            validation = validateItemPN(value);
+            break;
+          case 'numeroRegistros':
+            validation = validateNumeroRegistros(value, formData.masDeUnRegistro);
+            break;
+        }
+
+        setFieldErrors(prev => {
+          const newErrors = { ...prev };
+          if (validation.valid) {
+            delete newErrors[fieldName];
+          } else {
+            newErrors[fieldName] = validation.message;
+          }
+          return newErrors;
+        });
+      };
+
+      // Función handleSubmit mejorada con validaciones completas
+      const handleSubmit = async () => {
+        try {
+          // Limpiar errores previos
+          setFieldErrors({});
+
+          const { refEsquematico, itemPN, secuencia, masDeUnRegistro, numeroRegistros } = formData;
+
+          // Validaciones completas
+          const errors = {};
+
+          const refValidation = validateRefEsquematico(refEsquematico);
+          if (!refValidation.valid) {
+            errors.refEsquematico = refValidation.message;
+          }
+
+          const itemValidation = validateItemPN(itemPN);
+          if (!itemValidation.valid) {
+            errors.itemPN = itemValidation.message;
+          }
+
+          if (!secuencia.trim()) {
+            errors.secuencia = "Debe seleccionar una secuencia";
+          }
+
+          const registrosValidation = validateNumeroRegistros(numeroRegistros, masDeUnRegistro);
+          if (!registrosValidation.valid) {
+            errors.numeroRegistros = registrosValidation.message;
+          }
+
+          // Si hay errores, mostrarlos y no continuar
+          if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
+
+            const errorMessages = Object.values(errors).join('\n');
             Toast.fire({
               icon: "error",
-              title: "Error de red o servidor",
+              title: "Errores en el formulario:",
+              text: errorMessages,
+              timer: 6000
             });
+            return;
+          }
+
+          // Mostrar confirmación antes de guardar
+          // const result = await Swal.fire({
+          //   title: '¿Confirmar registro?',
+          //   html: `
+          //     <div style="text-align: left;">
+          //       <strong>S/N:</strong> ${formData.serialNumber}<br>
+          //       <strong>Área:</strong> ${formData.area}<br>
+          //       <strong>Código de Falla:</strong> ${formData.codigoFalla}<br>
+          //       <strong>Ref. Esquemático:</strong> ${refEsquematico}<br>
+          //       <strong>Item P/N:</strong> ${itemPN}<br>
+          //       <strong>Secuencia:</strong> ${secuencia}<br>
+          //       ${masDeUnRegistro ? `<strong>Registros:</strong> ${numeroRegistros}<br>` : ''}
+          //     </div>
+          //   `,
+          //   icon: 'question',
+          //   showCancelButton: true,
+          //   confirmButtonText: 'Sí, guardar',
+          //   cancelButtonText: 'Cancelar',
+          //   confirmButtonColor: '#28a745',
+          //   cancelButtonColor: '#dc3545'
+          // });
+
+          // if (!result.isConfirmed) {
+          //   return;
+          // }
+
+          // Mostrar loading
+          Toast.fire({
+            icon: "info",
+            title: "Guardando registro...",
+            timer: 2000
           });
+
+          // Detener cronómetro
+          const tiempoFinal = stopTimer();
+
+          const dataToSend = {
+            ...formData,
+            tiempoReparacion: tiempoFinal
+          };
+
+          console.log("datos del formulario:", dataToSend);
+
+          const response = await fetch("http://127.0.0.1:5000/api/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(dataToSend),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error del servidor: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.ok) {
+            Toast.fire({
+              icon: "success",
+              title: "¡Registro guardado correctamente!",
+              //text: `Tiempo de reparación: ${Math.floor(tiempoFinal / 60)}:${(tiempoFinal % 60).toString().padStart(2, '0')}`
+            });
+
+            // Resetear formulario
+            resetTimer();
+            setFormData({
+              serialNumber: "",
+              item: "",
+              familia: "",
+              descripcion: "",
+              area: "",
+              centroCosto: "",
+              semana: formData.semana,
+              fechaRegistro: new Date().toISOString().split("T")[0],
+              numeroEmpleado: formData.numeroEmpleado,
+              nombreEmpleadoCompleto: formData.nombreEmpleadoCompleto,
+              nombreEmpleado: formData.nombreEmpleado,
+              apellidoEmpleado: formData.apellidoEmpleado,
+              puesto: formData.puesto,
+              turno: formData.turno,
+              codigoFalla: "",
+              descripcionFalla: "",
+              descripcionDefecto: "",
+              refEsquematico: "",
+              itemPN: "",
+              secuencia: "",
+              tiempoReparacion: 0,
+              masDeUnRegistro: false,
+              numeroRegistros: "",
+            });
+            setCurrentStep(1);
+            setFieldErrors({});
+          } else {
+            throw new Error(data.message || "Error desconocido al guardar");
+          }
+        } catch (error) {
+          console.error("Error al guardar el registro:", error);
+
+          let errorMessage = "Error desconocido al guardar";
+          if (error.message.includes("Failed to fetch")) {
+            errorMessage = "Error de conexión. Verifique su conexión a internet";
+          } else if (error.message.includes("500")) {
+            errorMessage = "Error interno del servidor";
+          } else {
+            errorMessage = error.message;
+          }
+
+          Toast.fire({
+            icon: "error",
+            title: "Error al guardar el registro",
+            text: errorMessage,
+            timer: 5000
+          });
+        }
       };
 
+      // Estados para el modal de generación de S/N
+      const [serialFormData, setSerialFormData] = useState({
+        identificador: '',
+        fecha: '',
+        ensamble: '',
+        job: '',
+        sequence: 'BOTTOM'
+      });
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [serialError, setSerialError] = useState('');
+      const [previewSerial, setPreviewSerial] = useState('');
+      const [serialFieldErrors, setSerialFieldErrors] = useState({});
+
+      // Función para manejar cambios en el job y auto-generar ID si es BOTTOM
+      const handleJobChange = async (job) => {
+        setSerialFormData(prev => ({ ...prev, job }));
+
+        if (serialFormData.sequence === 'BOTTOM' && job.trim()) {
+          try {
+            const response = await fetch('/api/get-last-id', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ job: job.trim(), sequence: 'BOTTOM' })
+            });
+            const result = await response.json();
+            if (result.success) {
+              setSerialFormData(prev => ({
+                ...prev,
+                job,
+                identificador: result.next_id.toString().padStart(4, '0')
+              }));
+            }
+          } catch (error) {
+            console.error('Error al obtener último ID:', error);
+          }
+        }
+      };
+
+      // Función para generar preview del S/N
+      const generatePreview = () => {
+        const { identificador, fecha, ensamble, job } = serialFormData;
+        if (identificador && fecha && ensamble && job) {
+          const yearMonth = fecha.replace('/', '').replace(/10/g, 'A').replace(/11/g, 'B').replace(/12/g, 'C');
+          const cleanEnsamble = ensamble.replace('003-', '').replace(/-/g, '');
+          const preview = `0${identificador}${yearMonth}${cleanEnsamble} ${job}`;
+          setPreviewSerial(preview.substring(0, 26));
+        } else {
+          setPreviewSerial('');
+        }
+      };
+
+      useEffect(() => {
+        generatePreview();
+      }, [serialFormData]);
+
+      // Función principal para generar S/N con validaciones mejoradas
+      const handleGenerarSN = async () => {
+        try {
+          setIsGenerating(true);
+          setSerialError('');
+          setSerialFieldErrors({});
+
+          // Validar todos los campos
+          const errors = validateSerialFormData(serialFormData);
+
+          if (Object.keys(errors).length > 0) {
+            setSerialFieldErrors(errors);
+            setSerialError('Por favor verifica que los datos esten completos/correctos');
+            setIsGenerating(false);
+            return;
+          }
+
+          console.log("!DEBUG: serialFormData:", serialFormData);
+
+          const serialData = {
+            ...serialFormData,
+            identificador: serialFormData.identificador.toUpperCase(),
+            ensamble: serialFormData.ensamble.toUpperCase(),
+            job: serialFormData.job.toUpperCase(),
+          };
+
+          const response = await fetch('/api/generate-serial', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(serialData)
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error del servidor: ${response.status}`);
+          }
+
+          const result = await response.json();
+
+          if (result.success) {
+            const serialNumberUpper = result.serial_number.toUpperCase();
+
+            setFormData(prev => ({ ...prev, serialNumber: serialNumberUpper }));
+
+            if (!scannedSerials.includes(serialNumberUpper)) {
+              setScannedSerials(prev => [serialNumberUpper, ...prev.slice(0, 4)]);
+            }
+
+            startTimer();
+            setShowModal(false);
+
+            // Limpiar campos
+            setSerialFormData({
+              identificador: '',
+              fecha: '',
+              ensamble: '',
+              job: '',
+              sequence: 'BOTTOM'
+            });
+            setPreviewSerial('');
+            setSerialFieldErrors({});
+
+            Toast.fire({
+              icon: "success",
+              title: "S/N generado exitosamente",
+            });
+
+            setCurrentStep(1);
+          } else {
+            throw new Error(result.error || 'Error al generar el número de serie');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+
+          let errorMessage = 'Error de conexión con el servidor';
+          if (error.message.includes('500')) {
+            errorMessage = 'Error interno del servidor';
+          } else if (error.message.includes('400')) {
+            errorMessage = 'Datos inválidos enviados al servidor';
+          } else {
+            errorMessage = error.message;
+          }
+
+          setSerialError(errorMessage);
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      const handleCloseModal = () => {
+        setShowModal(false);
+        setSerialError('');
+        setPreviewSerial('');
+        setSerialFieldErrors({});
+        setSerialFormData({
+          identificador: '',
+          fecha: '',
+          ensamble: '',
+          job: '',
+          sequence: 'BOTTOM'
+        });
+      };
+
+      const handleGenerarGraficos = () => {
+        Toast.fire({
+          icon: "info",
+          title: "Función en desarrollo...",
+          text: "Esta característica estará disponible próximamente"
+        });
+      };
 
       const canProceedToNext = () => {
-        if (currentStep === 4) {
-          return (
-            formData.descripcionDefecto &&
-            formData.refEsquematico &&
-            formData.itemPN &&
-            formData.secuencia
-          );
+        const { refEsquematico, itemPN, secuencia, masDeUnRegistro, numeroRegistros } = formData;
+
+        if (!refEsquematico.trim() || !itemPN.trim() || !secuencia.trim()) {
+          return false;
         }
-        return true;
+
+        if (masDeUnRegistro) {
+          const num = parseInt(numeroRegistros, 10);
+          if (isNaN(num) || num < 1 || num > 100) {
+            return false;
+          }
+        }
+
+        return Object.keys(fieldErrors).length === 0;
       };
 
       const resetForm = () => {
+        resetTimer();
         setCurrentStep(1);
+        setFieldErrors({});
         setFormData((prev) => ({
           ...prev,
           serialNumber: "",
@@ -406,12 +1001,20 @@
           refEsquematico: "",
           itemPN: "",
           secuencia: "",
+          masDeUnRegistro: false,
+          numeroRegistros: "",
+          tiempoReparacion: 0
         }));
-      };
+
+        Toast.fire({
+          icon: "success",
+          title: "Formulario reiniciado"
+        });
+      }
+
 
       const [searchTerm, setSearchTerm] = useState("");
 
-      // Filtrar los códigos de falla según el término de búsqueda
       const filteredFailureCodes = failureCodes.filter(
         (failure) =>
           failure.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -420,6 +1023,14 @@
 
       return (
         <div className="app-container">
+          {/* Cronómetro oculto */}
+          {timerActive && (
+            <div className="hidden-timer">
+              <span className="timer-indicator"></span>
+              Tiempo: {formatTime(timerElapsed)}
+            </div>
+          )}
+
           {/* Header */}
           <div className="header">
             <div className="logo">
@@ -433,8 +1044,7 @@
               <div className="user-info">
                 <div className="user-row">
                   <UserIcon />
-                  <span style={{ marginRight: "50px" }}>
-                    {/* {formData.nombreEmpleadoCompleto} - {formData.puesto} */}
+                  <span>
                     {formData.apellidoEmpleado} {formData.nombreEmpleado} - {formData.puesto}
                   </span>
                 </div>
@@ -474,68 +1084,195 @@
           {/* Step 1: QR Scan */}
           {currentStep === 1 && (
             <div className="step-container">
-              <div className="scan-section">
-                <div className="scan-icon">
-                  <ScanIcon />
-                </div>
-                <h2>Escanear Código QR</h2>
-                <p>Escanea el código QR del pcb para comenzar</p>
-                <div className="scan-actions">
-                  {/*
-                  <button
-                    onClick={simulateQRScan}
-                    disabled={isScanning}
-                    className="primary-btn"
-                  >
-                    {isScanning ? "Escaneando..." : "Simular Escaneo QR"}
-                  </button>
-
-                  <div className="divider">
-                    <span>o</span>
+              <div className="compact-layout">
+                <div className="scan-section">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px" }}>
+                    <div className="scan-icon" style={{ marginRight: "16px" }}>
+                      <ScanIcon />
+                    </div>
+                    <div style={{ textAlign: "left" }}>
+                      <h2 style={{ margin: "0 0 4px 0" }}>Escanear Código QR</h2>
+                      <p style={{ margin: "0" }}>Escanea el código QR del PCB para comenzar</p>
+                    </div>
                   </div>
-                  */}
-                  <div className="manual-input">
+                  <div className="scan-actions">
+                    <div className="manual-input">
+                      <input
+                        ref={qrInputRef}
+                        type="text"
+                        placeholder="Escanea o Ingresa el S/N manualmente"
+                        className="search-input"
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter" && e.target.value.trim()) {
+                            handleQRScan(e.target.value.trim());
+                          }
+                        }}
+                        onChange={(e) => {
+                          // Convertir a mayúsculas automáticamente
+                          e.target.value = e.target.value.toUpperCase();
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          const value = qrInputRef.current?.value.trim();
+                          if (value) {
+                            handleQRScan(value);
+                          } else {
+                            Toast.fire({
+                              icon: "warning",
+                              title: "Ingrese un número de serie válido"
+                            });
+                          }
+                        }}
+                        className="secondary-btn"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m21 21-4.34-4.34" />
+                          <circle cx="11" cy="11" r="8" />
+                        </svg>
+                        Buscar
+                      </button>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", margin: "12px 0" }}>
+                      <hr style={{ flex: 1, margin: "0 8px 0 0" }} />
+                      <span style={{ color: "#6b7280", fontSize: "14px", whiteSpace: "nowrap" }}>
+                        — o —
+                      </span>
+                      <hr style={{ flex: 1, margin: "0 0 0 8px" }} />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between" }}>
+                      <p style={{ margin: "0", fontSize: "14px" }}>¿No cuentas con un S/N para escanear?</p>
+                      <button className="secondary-btn" onClick={() => setShowModal(true)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+                          <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+                        </svg>
+                        Generar S/N
+                      </button>
+                    </div>
+                    <div className="footer">
+                      <button onClick={handleGenerarGraficos} title="Generar graficos" className="secondary-btn" id="ing-procesos">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 13H7" />
+                          <path d="M19 9h-4" />
+                          <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+                          <rect x="15" y="5" width="4" height="12" rx="1" />
+                          <rect x="7" y="8" width="4" height="9" rx="1" />
+                        </svg>
+                        Ingenieria de Procesos PCBA
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="quick-access">
+                  <h3>Acceso Rápido - Últimos S/N</h3>
+                  <div className="quick-buttons">
+                    {scannedSerials.length > 0 ? (
+                      scannedSerials.map((sn) => (
+                        <button
+                          key={sn}
+                          onClick={() => handleQRScan(sn)}
+                          className="quick-btn"
+                          title={`Usar S/N: ${sn}`}
+                        >
+                          {sn}
+                        </button>
+                      ))
+                    ) : (
+                      <p style={{ color: "#6b7280", fontStyle: "italic", fontSize: 14 }}>
+                        No hay S/N recientes
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal para generar S/N con validaciones mejoradas */}
+              {showModal && (
+                <div className="modal">
+                  <div className="modal-content">
+                    <h3>Generar Número de Serie</h3>
+                    {/* Mostrar error si existe */}
+                    {serialError && (
+                      <div style={{ color: 'red', marginBottom: '10px', padding: '5px', backgroundColor: '#ffe6e6', borderRadius: '4px' }}>
+                        {serialError}
+                      </div>
+                    )}
+                    <label>Identificador (ID):</label>
                     <input
-                      ref={qrInputRef}
                       type="text"
-                      placeholder="Escanea o Ingresa el S/N manualmente"
-                      className="search-input"
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          handleQRScan(e.target.value);
-                        }
-                      }}
+                      value={serialFormData.identificador}
+                      onChange={(e) => setSerialFormData({ ...serialFormData, identificador: e.target.value })}
+                      placeholder="Ej: 1234 (se auto-genera para BOTTOM)"
                     />
-                    <button
-                      onClick={() => handleQRScan(qrInputRef.current?.value)}
-                      className="secondary-btn"
+                    <label>Fecha (AA/M):</label>
+                    <input
+                      type="text"
+                      value={serialFormData.fecha}
+                      onChange={(e) => setSerialFormData({ ...serialFormData, fecha: e.target.value })}
+                      placeholder="Ej: 25/2 (año 2025, mes febrero)"
+                    />
+                    <label>Ensamble:</label>
+                    <input
+                      type="text"
+                      value={serialFormData.ensamble}
+                      onChange={(e) => setSerialFormData({ ...serialFormData, ensamble: e.target.value })}
+                      placeholder="Ej: 003-12345-01"
+                    />
+                    <label>Job:</label>
+                    <input
+                      type="text"
+                      value={serialFormData.job}
+                      onChange={(e) => handleJobChange(e.target.value)}
+                      placeholder="Ej: 18000451 o D 18000451"
+                    />
+                    <label>Secuencia:</label>
+                    <select
+                      value={serialFormData.sequence}
+                      onChange={(e) => setSerialFormData({ ...serialFormData, sequence: e.target.value })}
                     >
-                      Buscar
-                    </button>
+                      <option value="BOTTOM">BOTTOM</option>
+                      <option value="TOP">TOP</option>
+                    </select>
+                    {/* Mostrar preview del S/N si está disponible */}
+                    {previewSerial && (
+                      <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
+                        <strong>S/N a generar:</strong> {previewSerial.toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ marginTop: '15px' }}>
+                      <button
+                        onClick={handleGenerarSN}
+                        disabled={isGenerating}
+                        style={{
+                          marginRight: '10px',
+                          padding: '8px 16px',
+                          backgroundColor: isGenerating ? '#ccc' : '#007bff',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: isGenerating ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {isGenerating ? 'Generando...' : 'Generar S/N'}
+                      </button>
+                      <button
+                        onClick={handleCloseModal}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#6c757d',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
-                  <div className="divider">
-                    <span>o</span>
-                  </div>
-                  <hr />
-                  <p>No cuentas con un S/N para escanear?</p>
-                  <button className="secondary-btn">Generar S/N</button>
                 </div>
-              </div>
-
-              <div className="quick-access">
-                <h3>Acceso Rápido - Últimos S/N</h3>
-                <div className="quick-buttons">
-                  {scannedSerials.map((sn) => (
-                    <button
-                      key={sn}
-                      onClick={() => handleQRScan(sn)}
-                      className="quick-btn"
-                    >
-                      {sn}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -546,29 +1283,24 @@
                 <CheckIcon />
                 <span>Datos cargados automáticamente:</span>
                 <div className="auto-data">
-                  <p>
-                    <strong>S/N:</strong> {formData.serialNumber}
-                  </p>
-                  <p>
-                    <strong>Item:</strong> {formData.item}
-                  </p>
-                  <p>
-                    <strong>Familia:</strong> {formData.familia}
-                  </p>
-                  <p>
-                    <strong>Descripción:</strong> {formData.descripcion}
-                  </p>
+                  <p><strong>S/N:</strong> {formData.serialNumber}</p>
+                  <p><strong>Item:</strong> {formData.item}</p>
+                  <p><strong>Familia:</strong> {formData.familia}</p>
+                  <p><strong>Descripción:</strong> {formData.descripcion}</p>
                 </div>
               </div>
-
               <div>
                 <h2>Seleccionar Área de Retrabajo</h2>
+                {/*<p style={{ color: "#6b7280", marginBottom: "20px" }}>
+                  Seleccione el área donde se realizará el retrabajo
+                </p>*/}
                 <div className="area-grid">
                   {["SMT", "THL", "TNT"].map((area) => (
                     <button
                       key={area}
                       onClick={() => handleAreaSelect(area)}
                       className="area-btn"
+                      title={`Seleccionar área ${area} - Centro de costo: ${areaCostCenter[area]}`}
                     >
                       <div className="area-name">{area}</div>
                       <div className="area-code">{areaCostCenter[area]}</div>
@@ -584,50 +1316,69 @@
             <div className="step-container">
               <div className="info-bar">
                 <p>
-                  <strong>Área seleccionada:</strong> {formData.area} (
-                  {formData.centroCosto})
+                  <strong>Área seleccionada:</strong> {formData.area} ({formData.centroCosto})
                 </p>
               </div>
-
               <div>
                 <h2>Código de Falla</h2>
+                {/*<p style={{ color: "#6b7280", marginBottom: "15px" }}>
+                  Busque y seleccione el código que mejor describa la falla encontrada
+                </p>*/}
                 <div className="failure-list">
-                  {/* Barra de busqueda para buscar una falla por codigo o descripcion */}
                   <input
                     type="text"
-                    placeholder="Buscar por código o descripción"
+                    placeholder="Buscar por código o descripción..."
                     className="text-input"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ marginBottom: "15px" }}
                   />
-                  {filteredFailureCodes.map((failure) => (
-                    <button
-                      key={failure.code}
-                      onClick={() => handleFailureCodeSelect(failure.code, failure.description)}
-                      className="failure-btn"
-                    >
-                      <div className="failure-code">{failure.code}</div>
-                      <div className="failure-desc">{failure.description}</div>
-                    </button>
-                  ))}
+
+                  {filteredFailureCodes.length > 0 ? (
+                    filteredFailureCodes.map((failure) => (
+                      <button
+                        key={failure.code}
+                        onClick={() => handleFailureCodeSelect(failure.code, failure.description)}
+                        className="failure-btn"
+                        title={`Seleccionar código ${failure.code}: ${failure.description}`}
+                      >
+                        <div className="failure-code">{failure.code}</div>
+                        <div className="failure-desc">{failure.description}</div>
+                      </button>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: "center", padding: "20px", color: "#6b7280" }}>
+                      <p>No se encontraron códigos de falla que coincidan con "{searchTerm}"</p>
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        style={{
+                          background: "none",
+                          border: "1px solid #ddd",
+                          padding: "5px 10px",
+                          borderRadius: "4px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Limpiar búsqueda
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 4: Final Details */}
+          {/* Step 4: Final Details con validaciones mejoradas */}
           {currentStep === 4 && (
             <div className="step-container">
               <div className="info-bar">
                 <p>
-                  {/* Codigo de falla y descripcion del codigo */}
                   <strong>Código de Falla:</strong> {formData.codigoFalla} - {formData.descripcionFalla}
                 </p>
               </div>
-
               <div className="details-grid">
                 <div>
-                  <label>Descripción del Defecto *</label>
+                  <label>Descripción del Defecto</label>
                   <textarea
                     ref={defectInputRef}
                     value={formData.descripcionDefecto}
@@ -639,7 +1390,7 @@
                     }
                     className="textarea"
                     rows="3"
-                    placeholder="Describe brevemente el defecto..."
+                    placeholder="Describe brevemente el defecto... (opcional, pero útil)"
                   />
                   <div className="suggestions">
                     <p>Sugerencias frecuentes:</p>
@@ -649,6 +1400,7 @@
                           key={defect}
                           onClick={() => handleDefectSuggestion(defect)}
                           className="suggestion-btn"
+                          title={`Usar sugerencia: ${defect}`}
                         >
                           {defect}
                         </button>
@@ -656,22 +1408,25 @@
                     </div>
                   </div>
                 </div>
-
                 <div className="right-panel">
                   <div className="form-group">
                     <label>Ref. del Esquemático *</label>
                     <input
                       type="text"
                       value={formData.refEsquematico}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          refEsquematico: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => handleFieldChange('refEsquematico', e.target.value.toUpperCase())}
                       className="text-input"
                       placeholder="ej. R123, C456, U789"
+                      style={{
+                        borderColor: fieldErrors.refEsquematico ? '#ff6b6b' : '#ddd',
+                        backgroundColor: fieldErrors.refEsquematico ? '#fff5f5' : 'white'
+                      }}
                     />
+                    {fieldErrors.refEsquematico && (
+                      <small style={{ color: '#ff6b6b', display: 'block', marginTop: '4px' }}>
+                        {fieldErrors.refEsquematico}
+                      </small>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -679,12 +1434,80 @@
                     <input
                       type="text"
                       value={formData.itemPN}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, itemPN: e.target.value }))
-                      }
+                      onChange={(e) => handleFieldChange('itemPN', e.target.value)}
                       className="text-input"
                       placeholder="Número de parte retrabajado"
+                      style={{
+                        borderColor: fieldErrors.itemPN ? '#ff6b6b' : '#ddd',
+                        backgroundColor: fieldErrors.itemPN ? '#fff5f5' : 'white'
+                      }}
                     />
+                    {fieldErrors.itemPN && (
+                      <small style={{ color: '#ff6b6b', display: 'block', marginTop: '4px' }}>
+                        {fieldErrors.itemPN}
+                      </small>
+                    )}
+
+                    {/* Checkbox y input para más de un registro */}
+                    <div className="form-group" style={{ marginTop: '15px' }}>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={formData.masDeUnRegistro}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setFormData((prev) => ({
+                              ...prev,
+                              masDeUnRegistro: checked,
+                              numeroRegistros: checked ? prev.numeroRegistros : "",
+                            }));
+
+                            // Limpiar errores relacionados
+                            if (!checked) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.numeroRegistros;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                        />
+                        ¿Más de un registro?
+
+                        {/* Mostrar input solo si está marcado */}
+                        {formData.masDeUnRegistro && (
+                          <div className="warning-message">
+                            <span>¿Cuántos registros se realizarán? (máx. 100)</span>
+                            <input
+                              min="1"
+                              max="100"
+                              type="number"
+                              value={formData.numeroRegistros}
+                              onChange={(e) => handleFieldChange('numeroRegistros', e.target.value)}
+                              style={{
+                                width: "60px",
+                                marginLeft: "10px",
+                                borderColor: fieldErrors.numeroRegistros ? '#ff6b6b' : (() => {
+                                  const num = parseInt(formData.numeroRegistros, 10);
+                                  if (formData.numeroRegistros === "") return "#ddd";
+                                  if (num < 1 || num > 100) return "#ff6b6b";
+                                  return "#28a745";
+                                })(),
+                                backgroundColor: fieldErrors.numeroRegistros ? '#fff5f5' : 'white'
+                              }}
+                              placeholder="1-100"
+                            />
+
+                            {/* Mostrar mensaje de error */}
+                            {fieldErrors.numeroRegistros && (
+                              <small style={{ color: "#ff6b6b", display: "block", marginTop: "4px" }}>
+                                {fieldErrors.numeroRegistros}
+                              </small>
+                            )}
+                          </div>
+                        )}
+                      </label>
+                    </div>
                   </div>
 
                   <div className="form-group">
@@ -692,34 +1515,58 @@
                     <div className="sequence-grid">
                       <button
                         onClick={() => handleSequenceSelect("10")}
-                        className={`sequence-btn ${formData.secuencia === "10" ? "selected" : ""
-                          }`}
+                        className={`sequence-btn ${formData.secuencia === "10" ? "selected" : ""}`}
+                        title="Seleccionar secuencia Bottom (10)"
                       >
                         <div className="seq-number">10</div>
                         <div className="seq-label">Bottom</div>
                       </button>
                       <button
                         onClick={() => handleSequenceSelect("20")}
-                        className={`sequence-btn ${formData.secuencia === "20" ? "selected" : ""
-                          }`}
+                        className={`sequence-btn ${formData.secuencia === "20" ? "selected" : ""}`}
+                        title="Seleccionar secuencia Top (20)"
                       >
                         <div className="seq-number">20</div>
                         <div className="seq-label">Top</div>
                       </button>
                     </div>
+                    {fieldErrors.secuencia && (
+                      <small style={{ color: '#ff6b6b', display: 'block', marginTop: '4px' }}>
+                        {fieldErrors.secuencia}
+                      </small>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div className="final-actions">
-                <button onClick={() => setCurrentStep(3)} className="secondary-btn">
-                  Anterior
+                <button onClick={() => {
+                  // Confirmar si quiere retroceder
+                  if (currentStep === 4) {
+                    setCurrentStep(currentStep - 1);
+                  }
+                }}
+                  className="secondary-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 15V9" />
+                    <path d="M15 15h-3v4l-7-7 7-7v4h3v6z" />
+                  </svg>
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={!canProceedToNext()}
                   className="success-btn"
+                  title={!canProceedToNext() ? "Complete todos los campos obligatorios" : "Guardar registro"}
+                  style={{
+                    opacity: !canProceedToNext() ? 0.6 : 1,
+                    cursor: !canProceedToNext() ? 'not-allowed' : 'pointer'
+                  }}
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+                    <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" />
+                    <path d="M7 3v4a1 1 0 0 0 1 1h7" />
+                  </svg>
                   Guardar Registro
                 </button>
               </div>
@@ -730,10 +1577,16 @@
           {currentStep >= 2 && currentStep <= 3 && (
             <div className="navigation">
               <button
-                onClick={() => setCurrentStep(currentStep - 1)}
-                className="secondary-btn" style={{ marginBottom: "10px" }}
+                onClick={() => {
+                  setCurrentStep(currentStep - 1);
+                }}
+                className="secondary-btn"
+                style={{ marginBottom: "10px" }}
               >
-                Anterior
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 15V9" />
+                  <path d="M15 15h-3v4l-7-7 7-7v4h3v6z" />
+                </svg>
               </button>
               <div className="step-indicator">Paso {currentStep} de 4</div>
             </div>

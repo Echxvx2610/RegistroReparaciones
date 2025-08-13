@@ -10,4 +10,5 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'default_key')
     DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
     ENV = os.getenv('FLASK_ENV', 'production')
-    SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+    #SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False

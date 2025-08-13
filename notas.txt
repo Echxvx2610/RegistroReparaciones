@@ -1,3 +1,325 @@
 00612256311781C  1800056679 # incorrecto! dos espacios
 00128256250251A 1800056627
 00128256250251A 1800056627
+
+************************************************************
+tengo un error con mi clase que controla los serialNumbers:
+Generando serial con secuencia: 10
+Job recibido: '1800056123'
+Identificador original: '0625'
+Año: 25, Mes: 7, Mes convertido: 7
+Serial generado inicialmente: 00625257311781C 1800056123
+No hay duplicado del serial completo. Usando serial original: 00625257311781C 1800056123
+SerialNumberManager: Serial number final - 00625257311781C 1800056123
+SerialNumberManager: Serial number length - 26
+127.0.0.1 - - [16/Jul/2025 07:37:10] "POST /api/register HTTP/1.1" 200 -       
+!DEBUG: Datos recibidos (scan_sn): {'serialNumber': '00625257311781C 1800056123'}
+127.0.0.1 - - [16/Jul/2025 07:39:56] "POST /api/serial_info HTTP/1.1" 200 -
+
+estas son mis funciones:
+def parse_serial_number(serial):
+    try:
+        parts = serial.strip().split()
+        if len(parts) != 2:
+            return None
+        left_part, job = parts[0], parts[1]
+        if len(left_part) == 14:
+            identificador = left_part[1:5]
+            fecha_hex = left_part[5:8]
+            ensamble_raw = left_part[8:14]
+            ensamble_raw = ensamble_raw[:-2] + '-' + ensamble_raw[-2:]
+        elif len(left_part) == 15:
+            identificador = left_part[1:5]
+            fecha_hex = left_part[5:8]
+            ensamble_raw = left_part[8:15]
+            ensamble_raw = ensamble_raw[:-2] + '-' + ensamble_raw[-2:]
+        else:
+            return None
+        ensamble_formateado = f"003-{ensamble_raw}" if ensamble_raw else None
+        return {
+            "identificador": identificador,
+            "fecha_hex": fecha_hex,
+            "ensamble_formateado": ensamble_formateado,
+            "job": job
+        }
+    except Exception as e:
+        print(f"Error al analizar el número de serie: {e}")
+        return None
+
+def serial_exists(serial_number, job, sequence, csv_path):
+    try:
+        with open(csv_path, mode='r', encoding='utf-8') as file:
+            reader = csv.reader(file)
+            next(reader)  # Saltar encabezado
+            for row in reader:
+                if len(row) >= 18:
+                    existing_serial = row[0].strip()
+                    existing_sequence = row[17].strip()
+                    existing_job = serial_manager.extract_job_from_serial(existing_serial)
+
+                    if existing_serial == serial_number and existing_job == job and existing_sequence == sequence:
+                        return True
+        return False
+    except Exception as e:
+        print(f"Error al verificar duplicado: {e}")
+        return False
+
+@app.route("/api/register", methods=["POST"])
+def register_repair():
+    data = request.get_json()
+    print("Datos recibidos (register_repair):", data)
+    
+    # Paso 1: Usar parse_serial_number para extraer datos reales
+    parsed_serial = parse_serial_number(data.get('serialNumber', '').strip())
+    if not parsed_serial:
+        return jsonify({"ok": False, "error": "Número de serie inválido"}), 400
+    
+    job = parsed_serial['job']
+    ensamble = parsed_serial['ensamble_formateado'] or data.get('item', '')
+    fecha_original = data.get('fechaRegistro')  # '2025-07-08'
+    sequence = data.get('secuencia', 'BOTTOM')
+    
+    # Mapear secuencia (BOTTOM/TOP -> 10/20)
+    sequence_map = {'BOTTOM': '10', 'TOP': '20'}
+    mapped_sequence = sequence_map.get(sequence.upper(), sequence)
+    
+    # Convertir fecha a 'AA/M' desde 'YYYY-MM-DD'
+    try:
+        fecha_obj = datetime.strptime(fecha_original, "%Y-%m-%d")
+        fecha_formateada = f"{str(fecha_obj.year)[2:]}/{fecha_obj.month}"
+    except ValueError:
+        return jsonify({"ok": False, "error": "Formato de fecha inválido"}), 400
+    
+    # 🔧 FIX: Usar el identificador original del serial parseado
+    identificador_original = parsed_serial['identificador']
+    
+    # Paso 2: Generar el serial usando el identificador original
+    serial = serial_manager.generate_serial_number(
+        identificador=identificador_original,
+        fecha=fecha_formateada,
+        ensamble=ensamble,
+        job=job,
+        sequence=mapped_sequence
+    )
+    
+    # Paso 3: Verificar si ya existe el serial, y si sí, incrementar ID
+    max_attempts = 5
+    attempt = 0
+    while serial_exists(serial, job, mapped_sequence, CSV_PATH) and attempt < max_attempts:
+        print(f"Serial duplicado encontrado (intento {attempt + 1}), generando nuevo ID...")
+        
+        # Obtener el siguiente ID disponible para este serial específico
+        next_id = serial_manager.get_next_id_for_duplicate(serial, job, mapped_sequence)
+        if next_id is not None:
+            identificador_nuevo = str(next_id).zfill(4)
+        else:
+            # Si no hay un patrón claro, incrementar manualmente
+            identificador_nuevo = str(int(identificador_original) + attempt + 1).zfill(4)
+        
+        serial = serial_manager.generate_serial_number(
+            identificador=identificador_nuevo,
+            fecha=fecha_formateada,
+            ensamble=ensamble,
+            job=job,
+            sequence=mapped_sequence
+        )
+        attempt += 1
+    
+    if attempt >= max_attempts:
+        return jsonify({"ok": False, "error": "No se pudo generar un serial único"}), 500
+    
+    # Paso 4: Actualizar data con el nuevo serial
+    data['serialNumber'] = serial
+    
+    # Paso 5: Guardar en CSV
+    save_register(data)
+    
+    return jsonify({
+        "ok": True,
+        "message": "Registro guardado",
+        "serialNumber": serial
+    })
+
+
+y esta es mi clase:
+ class SerialNumberManager:
+    def __init__(self):
+        self.serials_by_job = {}
+        # Usar la ruta del CSV desde la aplicación principal
+        self.csv_file_path = None
+
+    def set_csv_path(self, path):
+        """Establece la ruta del archivo CSV"""
+        self.csv_file_path = path
+        print(f"CSV path set to: {self.csv_file_path}")
+
+    def extract_job_from_serial(self, serial):
+        """Extrae el job del número de serial, manejando espacios extras --> 00001252250251A 1800012345"""
+        parts = serial.strip().split()
+        if len(parts) >= 2:
+            # Si hay una letra sola seguida de espacio (como 'D 18000451')
+            if len(parts[-2]) == 1:
+                return f"{parts[-2]} {parts[-1]}"
+            return parts[-1]
+        return ""
+    
+    def get_next_id_for_duplicate(self, current_serial, job, sequence):
+        """
+        Retorna el siguiente ID disponible SOLO si el serial completo ya existe.
+        Si no hay duplicados del serial completo, retorna None.
+        """
+        if not self.csv_file_path:
+            print("Error: CSV path not set")
+            return None
+
+        try:
+            # Primero verificar si el serial completo ya existe
+            serial_exists = False
+            ids_for_job = []
+            
+            with open(self.csv_file_path, mode='r', encoding='utf-8') as file:
+                reader = csv.reader(file)
+                next(reader)
+                for row in reader:
+                    if len(row) >= 18:
+                        existing_serial = row[0].strip()
+                        row_sequence = row[17].strip()
+                        row_job = self.extract_job_from_serial(existing_serial)
+
+                        # Verificar si el serial completo ya existe
+                        if existing_serial == current_serial:
+                            serial_exists = True
+                        
+                        # Recopilar todos los IDs para este job/secuencia
+                        if row_job.strip() == job.strip() and row_sequence.upper() == sequence.upper():
+                            try:
+                                current_id = int(existing_serial[1:5])
+                                ids_for_job.append(current_id)
+                            except ValueError:
+                                pass
+            
+            # Solo retornar un nuevo ID si el serial completo YA existe
+            if serial_exists and ids_for_job:
+                return max(ids_for_job) + 1
+            
+            return None  # No hay duplicado del serial completo
+            
+        except Exception as e:
+            print(f"Error en get_next_id_for_duplicate: {e}")
+            return None
+
+    def convert_month_to_hex(self, month):
+        """
+        Convierte el mes (1-12) a hexadecimal usando condicionales
+        1-9 -> "1"-"9"
+        10 -> "A"
+        11 -> "B"
+        12 -> "C"
+        """
+        try:
+            month = int(month)
+            if month < 1 or month > 12:
+                raise ValueError(f"Mes inválido: {month}")
+            
+            # Conversión usando condicionales
+            if month <= 9:
+                return str(month)
+            elif month == 10:
+                return "A"
+            elif month == 11:
+                return "B"
+            elif month == 12:
+                return "C"
+            
+        except ValueError as e:
+            print(f"Error al convertir mes: {e}")
+            return None
+
+    def format_date(self, date_str):
+        """
+        Formatea la fecha de AA/M a AAM
+        Ejemplo: 25/2 -> 252, 25/10 -> 25A
+        """
+        try:
+            if '/' not in date_str:
+                raise ValueError("Formato de fecha incorrecto. Use AA/M")
+            
+            year, month = date_str.split('/')
+            if len(year) != 2:
+                raise ValueError("El año debe tener 2 dígitos")
+            
+            hex_month = self.convert_month_to_hex(month)
+            if hex_month is None:
+                raise ValueError("Error al convertir el mes")
+            
+            print(f"Año: {year}, Mes: {month}, Mes convertido: {hex_month}")
+                
+            return f"{year}{hex_month}"
+            
+        except ValueError as e:
+            print(f"Error al formatear fecha: {e}")
+            return None
+    
+    def generate_serial_number(self, identificador, fecha, ensamble, job, sequence):
+        """
+        Genera un número de serie, incrementando el ID solo si el serial completo ya existe.
+        Asegura que el número de serie tenga exactamente 26 caracteres.
+        """
+        try:
+            print(f"Generando serial con secuencia: {sequence}")
+            print(f"Job recibido: '{job}'")
+            print(f"Identificador original: '{identificador}'")
+
+            # Formatear año y mes en hexadecimal
+            year_month = self.format_date(fecha)
+            if not year_month:
+                return None
+
+            # Limpiar y formatear el código de ensamble
+            ensamble_clean = ensamble.replace("003-", "").replace("-", "")
+            job_clean = job.strip()
+
+            # Generar el serial con el identificador original
+            serial_number = f"0{identificador}{year_month}{ensamble_clean} {job_clean}"
+            
+            # Truncar a 26 caracteres si es necesario
+            if len(serial_number) > 26:
+                serial_number = serial_number[:26]
+
+            print(f"Serial generado inicialmente: {serial_number}")
+
+           # Solo incrementar si el serial COMPLETO ya existe
+            if sequence:
+                next_id = self.get_next_id_for_duplicate(serial_number, job_clean, sequence)
+                if next_id is not None:
+                    # El serial completo ya existe, generar uno nuevo
+                    identificador = str(next_id).zfill(4)
+                    serial_number = f"0{identificador}{year_month}{ensamble_clean} {job_clean}"
+                    if len(serial_number) > 26:
+                        serial_number = serial_number[:26]
+                    print(f"Serial duplicado encontrado. Nuevo serial generado: {serial_number}")
+                else:
+                    # No hay duplicado del serial completo, usar el original
+                    print(f"No hay duplicado del serial completo. Usando serial original: {serial_number}")
+
+            print(f"SerialNumberManager: Serial number final - {serial_number}")
+            print(f"SerialNumberManager: Serial number length - {len(serial_number)}")
+
+            return serial_number
+
+        except Exception as e:
+            print(f"Error al generar el número de serie: {e}")
+            return None
+
+
+lo que busco es que al registrar no haya serial numbers duplicados en ninguna secuencia, por el lado de la secuencia 20
+se puede controlar mediante la lectura de la etiqueta fisica pero para la secuencia 10 hay que generar la etiqueta "virtual"
+y es ahi donde esta el problema, al registrar por ejemplo:
+00611257311781C 1800056679
+si ya hay un serial number identico deberia autoincrementar en uno el id dejando
+00612257311781C 1800056679
+
+no como lo deja en la tabla csv:
+S/N	                        Item	        Familia
+00611257311781C 1800056679	003-31178-1C	GOOSE
+00611257311781C 1800056679	003-31178-1C	GOOSE
