@@ -163,7 +163,7 @@ def ingenieria_auth():
         data = request.get_json()
         password = data.get('password', '')
         
-        INGENIERIA_PASSWORD = "ing2025"
+        #INGENIERIA_PASSWORD = 
         
         if password == INGENIERIA_PASSWORD:
             return jsonify({
@@ -879,3 +879,4 @@ if __name__ == "__main__":
         print("Aplicación iniciada con SQLite")
     
     app.run(debug=False)
+
