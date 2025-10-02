@@ -18,10 +18,6 @@ from data_manager import (
     sync_files_from_network
 )
 
-# Importar secret key de variables de entorno
-from dotenv import load_dotenv
-load_dotenv()
-
 # Crear instancia de app
 app = Flask(__name__)
 
@@ -29,7 +25,7 @@ app = Flask(__name__)
 database_path = get_database_path()
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Cambia esto por una clave segura
 
 # Inicializar la base de datos
 db.init_app(app)
@@ -145,191 +141,6 @@ def save_register(data):
         print(f"Error al guardar en la base de datos: {e}")
         db.session.rollback()
         return False
-
-@app.route("/ingenieria")
-def ingenieria_login():
-    """Página de login para ingeniería"""
-    return send_from_directory("templates", "ingenieria-login.html")
-
-@app.route("/ingenieria/dashboard")
-def ingenieria_dashboard():
-    """Página de dashboard para ingeniería"""
-    return send_from_directory("templates", "ingenieria-dashboard.html")
-
-@app.route("/api/ingenieria/login", methods=["POST"])
-def ingenieria_auth():
-    """Endpoint para autenticación de ingeniería"""
-    try:
-        data = request.get_json()
-        password = data.get('password', '')
-        
-        INGENIERIA_PASSWORD = "ing2025"
-        
-        if password == INGENIERIA_PASSWORD:
-            return jsonify({
-                "success": True,
-                "message": "Autenticación exitosa"
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "error": "Contraseña incorrecta"
-            }), 401
-            
-    except Exception as e:
-        print(f"Error en autenticación: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route("/api/ingenieria/stats", methods=["GET"])
-def ingenieria_stats():
-    """Endpoint para obtener estadísticas del dashboard"""
-    try:
-        fecha_inicio = request.args.get('fecha_inicio', None)
-        fecha_fin = request.args.get('fecha_fin', None)
-        
-        # Query base
-        query = Reparacion.query
-        
-        # Aplicar filtros de fecha si se proporcionan
-        if fecha_inicio:
-            query = query.filter(Reparacion.fecha_registro >= fecha_inicio)
-        if fecha_fin:
-            query = query.filter(Reparacion.fecha_registro <= fecha_fin)
-        
-        # Estadísticas generales
-        total_reparaciones = query.count()
-        
-        # Reparaciones por área
-        reparaciones_por_area = db.session.query(
-            Reparacion.area,
-            db.func.count(Reparacion.id).label('count')
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True)
-        ).group_by(Reparacion.area).all()
-        
-        # Top 10 códigos de falla más comunes
-        top_fallas = db.session.query(
-            Reparacion.codigo_falla,
-            Reparacion.descripcion_falla,
-            db.func.count(Reparacion.id).label('count')
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True)
-        ).group_by(Reparacion.codigo_falla, Reparacion.descripcion_falla)\
-         .order_by(db.func.count(Reparacion.id).desc())\
-         .limit(10).all()
-        
-        # Reparaciones por familia
-        reparaciones_por_familia = db.session.query(
-            Reparacion.familia,
-            db.func.count(Reparacion.id).label('count')
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True)
-        ).group_by(Reparacion.familia)\
-         .order_by(db.func.count(Reparacion.id).desc())\
-         .limit(10).all()
-        
-        # Reparaciones por turno
-        reparaciones_por_turno = db.session.query(
-            Reparacion.turno,
-            db.func.count(Reparacion.id).label('count')
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True)
-        ).group_by(Reparacion.turno).all()
-        
-        # Tiempo promedio de reparación por área
-        tiempo_promedio_area = db.session.query(
-            Reparacion.area,
-            db.func.avg(db.cast(Reparacion.tiempo_reparacion, db.Float)).label('avg_time')
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True)
-        ).group_by(Reparacion.area).all()
-        
-        reparaciones_por_semana_raw = db.session.query(
-            Reparacion.semana,
-            db.func.count(Reparacion.id).label('count')
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True)
-        ).group_by(Reparacion.semana).all()
-        
-        # Ordenar por número de semana extraído
-        def extraer_numero_semana(semana_str):
-            try:
-                # Extraer número de "Wk 12" -> 12
-                return int(semana_str.replace('Wk', '').replace('wk', '').strip())
-            except:
-                return 0
-        
-        reparaciones_por_semana = sorted(
-            [{"semana": semana, "count": count} for semana, count in reparaciones_por_semana_raw],
-            key=lambda x: extraer_numero_semana(x['semana'])
-        )
-        
-        reparaciones_por_empleado = db.session.query(
-            Reparacion.nombre_empleado_completo,
-            db.func.count(Reparacion.id).label('count')
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True),
-            Reparacion.nombre_empleado_completo.isnot(None),
-            Reparacion.nombre_empleado_completo != ''
-        ).group_by(Reparacion.nombre_empleado_completo)\
-         .order_by(db.func.count(Reparacion.id).desc())\
-         .limit(10).all()
-        
-        top_empleados = db.session.query(
-            Reparacion.nombre_empleado_completo
-        ).filter(
-            (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True) &
-            (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True),
-            Reparacion.nombre_empleado_completo.isnot(None),
-            Reparacion.nombre_empleado_completo != ''
-        ).group_by(Reparacion.nombre_empleado_completo)\
-         .order_by(db.func.count(Reparacion.id).desc())\
-         .limit(5).all()
-        
-        top_empleados_nombres = [emp[0] for emp in top_empleados]
-        
-        # Obtener reparaciones por semana para cada empleado top
-        reparaciones_semana_empleado = {}
-        for empleado in top_empleados_nombres:
-            datos_raw = db.session.query(
-                Reparacion.semana,
-                db.func.count(Reparacion.id).label('count')
-            ).filter(
-                Reparacion.nombre_empleado_completo == empleado,
-                (Reparacion.fecha_registro >= fecha_inicio if fecha_inicio else True),
-                (Reparacion.fecha_registro <= fecha_fin if fecha_fin else True)
-            ).group_by(Reparacion.semana).all()
-            
-            # Ordenar por número de semana
-            datos_ordenados = sorted(
-                [{"semana": semana, "count": count} for semana, count in datos_raw],
-                key=lambda x: extraer_numero_semana(x['semana'])
-            )
-            
-            reparaciones_semana_empleado[empleado] = datos_ordenados
-        
-        return jsonify({
-            "total_reparaciones": total_reparaciones,
-            "por_area": [{"area": area, "count": count} for area, count in reparaciones_por_area],
-            "top_fallas": [{"codigo": codigo, "descripcion": desc, "count": count} for codigo, desc, count in top_fallas],
-            "por_familia": [{"familia": familia, "count": count} for familia, count in reparaciones_por_familia],
-            "por_turno": [{"turno": turno, "count": count} for turno, count in reparaciones_por_turno],
-            "tiempo_promedio_area": [{"area": area, "avg_time": round(float(avg_time or 0) / 60, 2)} for area, avg_time in tiempo_promedio_area], # Convertir a minutos ( dividir entre 60)
-            "por_semana": reparaciones_por_semana,
-            "por_empleado": [{"empleado": empleado, "count": count} for empleado, count in reparaciones_por_empleado],
-            "semana_empleado": reparaciones_semana_empleado
-        })
-        
-    except Exception as e:
-        print(f"Error obteniendo estadísticas: {e}")
-        return jsonify({"error": str(e)}), 500
 
 @app.route("/")
 def index():

@@ -20,9 +20,6 @@
 
 <body>
   <div id="root"></div>
-  <div class="footer">
-    <p>Desarrollado por Cristian Echevarria Mendoza | &copy; 2024 Navico Group<p>
-  </div>
   <!-- Tu código React en JSX -->
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
@@ -963,13 +960,11 @@
       };
 
       const handleGenerarGraficos = () => {
-        // Toast.fire({
-        //   icon: "info",
-        //   title: "Función en desarrollo...",
-        //   text: "Esta característica estará disponible próximamente"
-        // });
-        // Redirigir a la página de gráficos
-        window.location.href = "/ingenieria";
+        Toast.fire({
+          icon: "info",
+          title: "Función en desarrollo...",
+          text: "Esta característica estará disponible próximamente"
+        });
       };
 
       const canProceedToNext = () => {

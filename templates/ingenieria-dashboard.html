@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Ingeniería</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-container {
+            transition: opacity 0.3s, max-height 0.3s;
+            overflow: hidden;
+        }
+
+        .chart-container.hidden-chart {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .footer {
+            font-style: italic;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Dashboard Ingeniería</h1>
+                        <p class="text-sm text-gray-500">Análisis de Reparaciones</p>
+                    </div>
+                </div>
+                <button onclick="logout()"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-log-out-icon lucide-log-out">
+                        <path d="m16 17 5-5-5-5" />
+                        <path d="M21 12H9" />
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading State -->
+        <div id="loadingState" class="flex items-center justify-center py-12">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">Cargando datos...</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboardContent" class="hidden space-y-6">
+            <!-- Filtros de fecha y selector de gráficos -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <!-- Filtros de Fecha -->
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Filtros de Fecha</h3>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Inicio</label>
+                                <input type="date" id="fechaInicio"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Fin</label>
+                                <input type="date" id="fechaFin"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div class="flex items-end gap-2">
+                                <button onclick="aplicarFiltros()"
+                                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                                    Aplicar
+                                </button>
+                                <button onclick="limpiarFiltros()"
+                                    class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors">
+                                    Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selector de Gráficos -->
+                    <div class="flex-1 border-l border-gray-200 pl-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Gráficos Visibles</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('area')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Por Área</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('fallas')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Top Fallas</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('familia')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Por Familia</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('turno')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Por Turno</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('tiempo')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Tiempo Promedio</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('semana')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Por Semana</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('empleado')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Por Empleado</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" checked onchange="toggleChart('semanaEmpleado')"
+                                    class="w-4 h-4 text-blue-600 rounded">
+                                <span class="text-sm text-gray-700">Semana/Empleado</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Total Reparaciones -->
+                <div class="stat-card bg-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Total Reparaciones</p>
+                            <p id="totalReparaciones" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Áreas Activas -->
+                <div class="stat-card bg-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Áreas Activas</p>
+                            <p id="areasActivas" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Familias -->
+                <div class="stat-card bg-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Familias</p>
+                            <p id="totalFamilias" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Códigos de Falla -->
+                <div class="stat-card bg-white rounded-xl shadow-md p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600">Códigos de Falla</p>
+                            <p id="totalFallas" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Reparaciones por Área -->
+                <div id="chartContainer-area" class="chart-container bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Reparaciones por Área</h3>
+                    <canvas id="areaChart"></canvas>
+                </div>
+
+                <!-- Top 10 Fallas -->
+                <div id="chartContainer-fallas" class="chart-container bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top 10 Códigos de Falla</h3>
+                    <canvas id="fallasChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Reparaciones por Familia -->
+                <div id="chartContainer-familia" class="chart-container bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top 10 Familias</h3>
+                    <canvas id="familiaChart"></canvas>
+                </div>
+
+                <!-- Reparaciones por Turno -->
+                <div id="chartContainer-turno" class="chart-container bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Reparaciones por Turno</h3>
+                    <canvas id="turnoChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Nuevos gráficos -->
+            <!-- Charts Row 3 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Reparaciones por Semana -->
+                <div id="chartContainer-semana" class="chart-container bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Reparaciones por Semana</h3>
+                    <canvas id="semanaChart"></canvas>
+                </div>
+
+                <!-- Reparaciones por Empleado -->
+                <div id="chartContainer-empleado" class="chart-container bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Soldadores</h3>
+                    <canvas id="empleadoChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tiempo Promedio por Área -->
+            <div id="chartContainer-tiempo" class="chart-container bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Tiempo Promedio de Reparación por Área (minutos)
+                </h3>
+                <canvas id="tiempoChart"></canvas>
+            </div>
+
+            <!-- Reparaciones por Semana Apilado por Empleado -->
+            <div id="chartContainer-semanaEmpleado" class="chart-container bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Reparaciones por Semana (Top 5 Empleados)</h3>
+                <canvas id="semanaEmpleadoChart"></canvas>
+            </div>
+            <div class="footer">
+                <p>Desarrollado por Cristian Echevarria Mendoza | &copy; 2024 Navico Group<p>
+            </div>
+        </div>
+
+    </main>
+    <script>
+        // Check authentication
+        if (!sessionStorage.getItem('ingenieria_auth')) {
+            window.location.href = '/ingenieria';
+        }
+
+        let charts = {};
+
+        // Logout function
+        function logout() {
+            sessionStorage.removeItem('ingenieria_auth');
+            window.location.href = '/ingenieria';
+        }
+
+        function toggleChart(chartName) {
+            const container = document.getElementById(`chartContainer-${chartName}`);
+            if (container) {
+                container.classList.toggle('hidden-chart');
+            }
+        }
+
+        async function aplicarFiltros() {
+            const fechaInicio = document.getElementById('fechaInicio').value;
+            const fechaFin = document.getElementById('fechaFin').value;
+
+            await loadDashboardData(fechaInicio, fechaFin);
+        }
+
+        async function limpiarFiltros() {
+            document.getElementById('fechaInicio').value = '';
+            document.getElementById('fechaFin').value = '';
+            await loadDashboardData();
+        }
+
+        function extraerNumeroSemana(semanaStr) {
+            try {
+                return parseInt(semanaStr.replace(/Wk|wk/gi, '').trim());
+            } catch {
+                return 0;
+            }
+        }
+
+        function formatearSemana(semanaStr) {
+            const numero = extraerNumeroSemana(semanaStr);
+            return numero > 0 ? `Semana ${numero}` : semanaStr;
+        }
+
+        async function loadDashboardData(fechaInicio = '', fechaFin = '') {
+            try {
+                // Show loading
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('dashboardContent').classList.add('hidden');
+
+                // Build URL with query parameters
+                let url = '/api/ingenieria/stats';
+                const params = new URLSearchParams();
+                if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+                if (fechaFin) params.append('fecha_fin', fechaFin);
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log('Datos recibidos:', data);
+
+                    // Validar que todos los campos necesarios existan
+                    const validatedData = {
+                        total_reparaciones: data.total_reparaciones || 0,
+                        por_area: data.por_area || [],
+                        top_fallas: data.top_fallas || [],
+                        por_familia: data.por_familia || [],
+                        por_turno: data.por_turno || [],
+                        tiempo_promedio_area: data.tiempo_promedio_area || [],
+                        por_semana: data.por_semana || [],
+                        por_empleado: data.por_empleado || [],
+                        semana_empleado: data.semana_empleado || {}
+                    };
+
+                    updateStats(validatedData);
+
+                    // Destroy existing charts
+                    Object.values(charts).forEach(chart => chart.destroy());
+                    charts = {};
+
+                    createCharts(validatedData);
+
+                    // Show dashboard content
+                    document.getElementById('loadingState').classList.add('hidden');
+                    document.getElementById('dashboardContent').classList.remove('hidden');
+                } else {
+                    throw new Error(data.error || 'Error al cargar datos');
+                }
+            } catch (error) {
+                console.error(' Error:', error);
+                alert('Error al cargar los datos del dashboard: ' + error.message);
+                document.getElementById('loadingState').classList.add('hidden');
+            }
+        }
+
+        // Update stats cards
+        function updateStats(data) {
+            document.getElementById('totalReparaciones').textContent = data.total_reparaciones.toLocaleString();
+            document.getElementById('areasActivas').textContent = (data.por_area || []).length;
+            document.getElementById('totalFamilias').textContent = (data.por_familia || []).length;
+            document.getElementById('totalFallas').textContent = (data.top_fallas || []).length;
+        }
+
+        // Create all charts
+        function createCharts(data) {
+            console.log('Creando gráficos con datos:', data);
+
+            // Chart colors
+            const colors = {
+                blue: 'rgb(59, 130, 246)',
+                green: 'rgb(34, 197, 94)',
+                red: 'rgb(239, 68, 68)',
+                yellow: 'rgb(234, 179, 8)',
+                purple: 'rgb(168, 85, 247)',
+                pink: 'rgb(236, 72, 153)',
+                orange: 'rgb(249, 115, 22)',
+                teal: 'rgb(20, 184, 166)',
+                indigo: 'rgb(99, 102, 241)',
+                cyan: 'rgb(6, 182, 212)',
+            };
+
+            const colorArray = [
+                colors.blue, colors.green, colors.red, colors.yellow,
+                colors.purple, colors.pink, colors.orange, colors.teal,
+                colors.indigo, colors.cyan
+            ];
+
+            // Reparaciones por Área
+            if (data.por_area && data.por_area.length > 0) {
+                charts.area = new Chart(document.getElementById('areaChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.por_area.map(item => item.area),
+                        datasets: [{
+                            label: 'Reparaciones',
+                            data: data.por_area.map(item => item.count),
+                            backgroundColor: colors.blue,
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            // Top 10 Fallas
+            if (data.top_fallas && data.top_fallas.length > 0) {
+                charts.fallas = new Chart(document.getElementById('fallasChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.top_fallas.map(item => `${item.codigo}`),
+                        datasets: [{
+                            label: 'Ocurrencias',
+                            data: data.top_fallas.map(item => item.count),
+                            backgroundColor: colors.red,
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: function (context) {
+                                        const index = context[0].dataIndex;
+                                        return data.top_fallas[index].descripcion;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            // Reparaciones por Familia
+            if (data.por_familia && data.por_familia.length > 0) {
+                charts.familia = new Chart(document.getElementById('familiaChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.por_familia.map(item => item.familia),
+                        datasets: [{
+                            data: data.por_familia.map(item => item.count),
+                            backgroundColor: colorArray,
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 10
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Reparaciones por Turno
+            if (data.por_turno && data.por_turno.length > 0) {
+                charts.turno = new Chart(document.getElementById('turnoChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: data.por_turno.map(item => item.turno),
+                        datasets: [{
+                            data: data.por_turno.map(item => item.count),
+                            backgroundColor: [colors.blue, colors.green, colors.purple],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Tiempo Promedio por Área
+            if (data.tiempo_promedio_area && data.tiempo_promedio_area.length > 0) {
+                console.log('Datos de tiempo promedio:', data.tiempo_promedio_area);
+                charts.tiempo = new Chart(document.getElementById('tiempoChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.tiempo_promedio_area.map(item => item.area),
+                        datasets: [{
+                            label: 'Tiempo Promedio (min)',
+                            data: data.tiempo_promedio_area.map(item => item.avg_time),
+                            backgroundColor: colors.green,
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            if (data.por_semana && data.por_semana.length > 0) {
+                console.log('Datos de semana:', data.por_semana);
+                charts.semana = new Chart(document.getElementById('semanaChart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.por_semana.map(item => formatearSemana(item.semana)),
+                        datasets: [{
+                            label: 'Reparaciones',
+                            data: data.por_semana.map(item => item.count),
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: colors.blue,
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            if (data.por_empleado && data.por_empleado.length > 0) {
+                console.log('Datos de empleado:', data.por_empleado);
+                charts.empleado = new Chart(document.getElementById('empleadoChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.por_empleado.map(item => item.empleado),
+                        datasets: [{
+                            label: 'Reparaciones',
+                            data: data.por_empleado.map(item => item.count),
+                            backgroundColor: colors.purple,
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+
+            if (data.semana_empleado && Object.keys(data.semana_empleado).length > 0) {
+                console.log('Datos de semana_empleado:', data.semana_empleado);
+                const empleados = Object.keys(data.semana_empleado);
+                const todasSemanas = [...new Set(
+                    empleados.flatMap(emp =>
+                        (data.semana_empleado[emp] || []).map(item => item.semana)
+                    )
+                )].sort((a, b) => extraerNumeroSemana(a) - extraerNumeroSemana(b));
+
+                const datasets = empleados.map((empleado, index) => {
+                    const empleadoData = data.semana_empleado[empleado] || [];
+                    const dataMap = {};
+                    empleadoData.forEach(item => {
+                        dataMap[item.semana] = item.count;
+                    });
+
+                    return {
+                        label: empleado,
+                        data: todasSemanas.map(semana => dataMap[semana] || 0),
+                        backgroundColor: colorArray[index % colorArray.length],
+                        borderRadius: 4,
+                    };
+                });
+
+                charts.semanaEmpleado = new Chart(document.getElementById('semanaEmpleadoChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: todasSemanas.map(s => formatearSemana(s)),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 10
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { stacked: true },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            console.log('Gráficos creados exitosamente');
+        }
+
+        // Load data on page load
+        loadDashboardData();
+    </script>
+</body>
+
+</html>
